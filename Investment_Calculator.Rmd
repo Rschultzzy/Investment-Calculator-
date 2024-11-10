@@ -1,0 +1,88 @@
+---
+title: "Investment_Calculator"
+author: "Robert Schultz"
+date: "11/9/2024"
+output: html_document
+---
+```{r}
+# Load necessary library
+library(ggplot2)
+library(scales)  # For formatting dollar amounts
+```
+
+```{r}
+# Define the parameters
+initial_investment <- 15500  # Initial investment amount
+biweekly_contribution <- 200  # Initial bi-weekly contribution
+years <- 30  # Investment period (30 years)
+biweekly_contribution_increase <- 75  # Increase in contribution each year
+```
+
+```{r}
+# Define the return rates for three scenarios
+return_rates <- c(0.07, 0.09, 0.11)  # Min (7%), Base (9%), Max (11%)
+```
+
+```{r}
+# Create an empty list to store results for each scenario
+investment_data <- data.frame(Year = integer(), Value = numeric(), Scenario = character())
+```
+
+```{r}
+# Function to calculate investment value over time
+calculate_investment <- function(annual_return) {
+  total_investment <- initial_investment
+  biweekly_contribution <- 200
+  
+  # Create a vector to store investment values over time
+  investment_values <- numeric(years + 1)
+  investment_values[1] <- total_investment
+  
+  for (year in 1:years) {
+    for (period in 1:26) {  # 26 bi-weekly periods in a year
+      total_investment <- total_investment * (1 + annual_return / 26)  # Compound interest for the period
+      total_investment <- total_investment + biweekly_contribution     # Add bi-weekly contribution
+    }
+    biweekly_contribution <- biweekly_contribution + biweekly_contribution_increase
+    investment_values[year + 1] <- total_investment
+  }
+  
+  return(investment_values)
+}
+```
+
+```{r}
+# Calculate investment values for each return rate scenario and store them in a data frame
+for (rate in return_rates) {
+  scenario_name <- paste0(round(rate * 100), "% Return")
+  
+  investment_values <- calculate_investment(rate)
+  
+  scenario_data <- data.frame(
+    Year = 0:years,
+    Value = investment_values,
+    Scenario = scenario_name
+  )
+  
+  investment_data <- rbind(investment_data, scenario_data)
+}
+```
+
+```{r}
+# Plot the results using ggplot2
+ggplot(investment_data, aes(x = Year, y = Value, color = Scenario)) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "Investment Value Over Time with Return Variations",
+    x = "Years",
+    y = "Investment Value"
+  ) +
+  theme_minimal() +
+  scale_color_manual(values = c("Red", "blue", "green")) +
+  scale_y_continuous(labels = label_dollar(scale = 1e-6, suffix = "M"),
+                     breaks = seq(0, max(investment_data$Value), by = 500000)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_text(angle = 0, hjust = 1)) +
+  coord_cartesian(ylim = c(0, max(investment_data$Value)))
+```
+
